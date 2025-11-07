@@ -12,14 +12,14 @@ def validate_args_and_show_help():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Process all .mp4 files in input folder
-  python batch_process.py -i /path/to/input -o /path/to/output
-
-  # Process all .mov files
-  python batch_process.py -i /path/to/input -o /path/to/output --pattern "*.mov"
-
-  # Process all video files (mp4, mov, avi)
-  python batch_process.py -i /path/to/input -o /path/to/output --pattern "*.{mp4,mov,avi}"
+    # Process all .mp4 files in input folder
+    python batch_process.py -i /path/to/input -o /path/to/output
+    # Process all .mov files
+    python batch_process.py -i /path/to/input -o /path/to/output --pattern "*.mov"
+    # Process all video files (mp4, mov, avi)
+    python batch_process.py -i /path/to/input -o /path/to/output --pattern "*.{mp4,mov,avi}"
+    # Without displaying the Tqdm bar inside sorawm procrssing.
+    python batch_process.py -i /path/to/input -o /path/to/output --quiet
         """
     )
 
