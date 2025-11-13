@@ -26,3 +26,4 @@ sqlalchemy
 aiosqlite
 aiofiles
 python-multipart
+streamlit
