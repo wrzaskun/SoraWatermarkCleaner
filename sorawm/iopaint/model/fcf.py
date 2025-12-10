@@ -311,9 +311,7 @@ class EncoderNetwork(torch.nn.Module):
         self.img_resolution = img_resolution
         self.img_resolution_log2 = int(np.log2(img_resolution))
         self.img_channels = img_channels
-        self.block_resolutions = [
-            2**i for i in range(self.img_resolution_log2, 2, -1)
-        ]
+        self.block_resolutions = [2**i for i in range(self.img_resolution_log2, 2, -1)]
         channels_dict = {
             res: min(channel_base // res, channel_max)
             for res in self.block_resolutions + [4]
@@ -1398,9 +1396,7 @@ class SynthesisNetwork(torch.nn.Module):
         self.img_resolution = img_resolution
         self.img_resolution_log2 = int(np.log2(img_resolution))
         self.img_channels = img_channels
-        self.block_resolutions = [
-            2**i for i in range(3, self.img_resolution_log2 + 1)
-        ]
+        self.block_resolutions = [2**i for i in range(3, self.img_resolution_log2 + 1)]
         channels_dict = {
             res: min(channel_base // res, channel_max) for res in self.block_resolutions
         }

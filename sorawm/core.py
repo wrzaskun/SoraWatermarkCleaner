@@ -1,54 +1,78 @@
 from pathlib import Path
 from typing import Callable
 
-import ffmpeg
 import numpy as np
 from loguru import logger
 from tqdm import tqdm
 
-from sorawm.utils.video_utils import VideoLoader
-from sorawm.watermark_cleaner import WaterMarkCleaner
-from sorawm.watermark_detector import SoraWaterMarkDetector
+import ffmpeg
+from sorawm.schemas import CleanerType
 from sorawm.utils.imputation_utils import (
     find_2d_data_bkps,
-    get_interval_average_bbox,
     find_idxs_interval,
+    get_interval_average_bbox,
+    refine_bkps_by_chunk_size,
 )
+from sorawm.utils.video_utils import VideoLoader, merge_frames_with_overlap
+from sorawm.watermark_cleaner import WaterMarkCleaner
+from sorawm.watermark_detector import SoraWaterMarkDetector
 
 VIDEO_EXTENSIONS = [".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm"]
 
-class SoraWM:
-    def __init__(self):
-        self.detector = SoraWaterMarkDetector()
-        self.cleaner = WaterMarkCleaner()
 
-    def run_batch(self, input_video_dir_path: Path,
+class SoraWM:
+    def __init__(self, cleaner_type: CleanerType = CleanerType.LAMA):
+        self.detector = SoraWaterMarkDetector()
+        self.cleaner = WaterMarkCleaner(cleaner_type)
+        self.cleaner_type = cleaner_type
+
+    def run_batch(
+        self,
+        input_video_dir_path: Path,
         output_video_dir_path: Path | None = None,
         progress_callback: Callable[[int], None] | None = None,
         quiet: bool = False,
-        ):
+    ):
         if output_video_dir_path is None:
             output_video_dir_path = input_video_dir_path.parent / "watermark_removed"
             if not quiet:
-                logger.warning(f"output_video_dir_path is not set, using {output_video_dir_path} as output_video_dir_path")
-        output_video_dir_path.mkdir(parents=True, exist_ok=True)        
+                logger.warning(
+                    f"output_video_dir_path is not set, using {output_video_dir_path} as output_video_dir_path"
+                )
+        output_video_dir_path.mkdir(parents=True, exist_ok=True)
         input_video_paths = []
         for ext in VIDEO_EXTENSIONS:
             input_video_paths.extend(input_video_dir_path.rglob(f"*{ext}"))
-        
+
         video_lengths = len(input_video_paths)
         if not quiet:
             logger.info(f"Found {video_lengths} video(s) to process")
-        for idx, input_video_path in enumerate(tqdm(input_video_paths, desc="Processing videos", disable=quiet)):
-            output_video_path = output_video_dir_path / input_video_path.name            
+        for idx, input_video_path in enumerate(
+            tqdm(input_video_paths, desc="Processing videos", disable=quiet)
+        ):
+            output_video_path = output_video_dir_path / input_video_path.name
             if progress_callback:
+
                 def batch_progress_callback(single_video_progress: int):
-                    overall_progress = int((idx / video_lengths) * 100 + (single_video_progress / video_lengths))
+                    overall_progress = int(
+                        (idx / video_lengths) * 100
+                        + (single_video_progress / video_lengths)
+                    )
                     progress_callback(min(overall_progress, 100))
-                
-                self.run(input_video_path, output_video_path, progress_callback=batch_progress_callback, quiet=quiet)
+
+                self.run(
+                    input_video_path,
+                    output_video_path,
+                    progress_callback=batch_progress_callback,
+                    quiet=quiet,
+                )
             else:
-                self.run(input_video_path, output_video_path, progress_callback=None, quiet=quiet)
+                self.run(
+                    input_video_path,
+                    output_video_path,
+                    progress_callback=None,
+                    quiet=quiet,
+                )
 
     def run(
         self,
@@ -101,11 +125,16 @@ class SoraWM:
                 f"total frames: {total_frames}, fps: {fps}, width: {width}, height: {height}"
             )
         for idx, frame in enumerate(
-            tqdm(input_video_loader, total=total_frames, desc="Detect watermarks", disable=quiet)
+            tqdm(
+                input_video_loader,
+                total=total_frames,
+                desc="Detect watermarks",
+                disable=quiet,
+            )
         ):
             detection_result = self.detector.detect(frame)
             if detection_result["detected"]:
-                frame_bboxes[idx] = { "bbox": detection_result["bbox"]}
+                frame_bboxes[idx] = {"bbox": detection_result["bbox"]}
                 x1, y1, x2, y2 = detection_result["bbox"]
                 bbox_centers.append((int((x1 + x2) / 2), int((y1 + y2) / 2)))
                 bboxes.append((x1, y1, x2, y2))
@@ -121,11 +150,13 @@ class SoraWM:
                 progress_callback(progress)
         if not quiet:
             logger.debug(f"detect missed frames: {detect_missed}")
+        bkps_full = [0, total_frames]
         if detect_missed:
             # 1. find the bkps of the bbox centers
             bkps = find_2d_data_bkps(bbox_centers)
             # add the start and end position, to form the complete interval boundaries
             bkps_full = [0] + bkps + [total_frames]
+            # bkps_full = bkps_full[0] + bkps + bkps_full[1]
             # logger.debug(f"bkps intervals: {bkps_full}")
 
             # 2. calculate the average bbox of each interval
@@ -146,8 +177,10 @@ class SoraWM:
                 ):
                     frame_bboxes[missed_idx]["bbox"] = interval_bboxes[interval_idx]
                     if not quiet:
-                        logger.debug(f"Filled missed frame {missed_idx} with bbox:\n"
-                        f" {interval_bboxes[interval_idx]}")
+                        logger.debug(
+                            f"Filled missed frame {missed_idx} with bbox:\n"
+                            f" {interval_bboxes[interval_idx]}"
+                        )
                 else:
                     # if the interval has no valid bbox, use the previous and next frame to complete (fallback strategy)
                     before = max(missed_idx - 1, 0)
@@ -162,24 +195,116 @@ class SoraWM:
             del bboxes
             del bbox_centers
             del detect_missed
-        
-        input_video_loader = VideoLoader(input_video_path)
 
-        for idx, frame in enumerate(tqdm(input_video_loader, total=total_frames, desc="Remove watermarks", disable=quiet)):
-            bbox = frame_bboxes[idx]["bbox"]
-            if bbox is not None:
-                x1, y1, x2, y2 = bbox
-                mask = np.zeros((height, width), dtype=np.uint8)
-                mask[y1:y2, x1:x2] = 255
-                cleaned_frame = self.cleaner.clean(frame, mask)
-            else:
-                cleaned_frame = frame
-            process_out.stdin.write(cleaned_frame.tobytes())
+        if self.cleaner_type == CleanerType.LAMA:
+            ## 1. Lama Cleaner Strategy.
+            input_video_loader = VideoLoader(input_video_path)
+            for idx, frame in enumerate(
+                tqdm(
+                    input_video_loader,
+                    total=total_frames,
+                    desc="Remove watermarks",
+                    disable=quiet,
+                )
+            ):
+                bbox = frame_bboxes[idx]["bbox"]
+                if bbox is not None:
+                    x1, y1, x2, y2 = bbox
+                    mask = np.zeros((height, width), dtype=np.uint8)
+                    mask[y1:y2, x1:x2] = 255
+                    cleaned_frame = self.cleaner.clean(frame, mask)
+                else:
+                    cleaned_frame = frame
+                process_out.stdin.write(cleaned_frame.tobytes())
 
-            # 50% - 95%
-            if progress_callback and idx % 10 == 0:
-                progress = 50 + int((idx / total_frames) * 45)
-                progress_callback(progress)
+                # 50% - 95%
+                if progress_callback and idx % 10 == 0:
+                    progress = 50 + int((idx / total_frames) * 45)
+                    progress_callback(progress)
+        elif self.cleaner_type == CleanerType.E2FGVI_HQ:
+            ## 2. E2FGVI_HQ Cleaner Strategy with overlap blending.
+            input_video_loader = VideoLoader(input_video_path)
+            frame_counter = 0
+            overlap_ratio = self.cleaner.config.overlap_ratio
+            all_cleaned_frames = None
+            # The original bkps' sep maybe too large to excel the chunk_size, so we need to refine it based on the VRAM.
+            bkps_full = refine_bkps_by_chunk_size(bkps_full, self.cleaner.chunk_size)
+            # Create overlapping segments for smooth transitions
+            num_segments = len(bkps_full) - 1
+            for segment_idx in tqdm(
+                range(num_segments),
+                desc="Segment",
+                position=0,
+                leave=True,
+                disable=quiet,
+            ):
+                seg_start = bkps_full[segment_idx]
+                seg_end = bkps_full[segment_idx + 1]
+                seg_length = seg_end - seg_start
+                # Calculate overlap size based on segment length
+                segment_overlap = max(1, int(overlap_ratio * seg_length))
+                # Extend segment boundaries to create overlap (except for first/last)
+                start = seg_start
+                end = seg_end
+
+                # Add overlap at the start (except for first segment)
+                if segment_idx > 0:
+                    start = max(seg_start - segment_overlap, bkps_full[segment_idx - 1])
+
+                # Add overlap at the end (except for last segment)
+                if segment_idx < num_segments - 1:
+                    end = min(seg_end + segment_overlap, bkps_full[segment_idx + 2])
+
+                if not quiet:
+                    logger.debug(
+                        f"Segment {segment_idx}: original=[{seg_start}, {seg_end}), "
+                        f"with_overlap=[{start}, {end}), overlap={segment_overlap}"
+                    )
+
+                frames = np.array(input_video_loader.get_slice(start, end))
+                # Convert BGR to RGB for E2FGVI_HQ cleaner (expects RGB format)
+                frames = frames[:, :, :, ::-1].copy()
+
+                masks = np.zeros((len(frames), height, width), dtype=np.uint8)
+                for idx in range(start, end):
+                    bbox = frame_bboxes[idx]["bbox"]
+                    if bbox is not None:
+                        x1, y1, x2, y2 = bbox
+                        # offset
+                        idx_offset = idx - start
+                        masks[idx_offset][y1:y2, x1:x2] = 255
+                cleaned_frames = self.cleaner.clean(frames, masks)
+
+                # Merge with overlap blending support
+                all_cleaned_frames = merge_frames_with_overlap(
+                    result_frames=all_cleaned_frames,
+                    chunk_frames=cleaned_frames,
+                    start_idx=start,
+                    overlap_size=segment_overlap,
+                    is_first_chunk=(segment_idx == 0),
+                )
+
+                # Determine which frames to write from this segment
+                # Write the core segment (seg_start to seg_end), skip overlaps for subsequent processing
+                write_start = seg_start
+                write_end = seg_end
+
+                for write_idx in range(write_start, write_end):
+                    if (
+                        write_idx < len(all_cleaned_frames)
+                        and all_cleaned_frames[write_idx] is not None
+                    ):
+                        cleaned_frame = all_cleaned_frames[write_idx]
+                        # Convert RGB back to BGR for FFmpeg output (expects bgr24 format)
+                        cleaned_frame_bgr = cleaned_frame[:, :, ::-1]
+                        process_out.stdin.write(
+                            cleaned_frame_bgr.astype(np.uint8).tobytes()
+                        )
+                        frame_counter += 1
+                        # 50% - 95%
+                        if progress_callback and frame_counter % 10 == 0:
+                            progress = 50 + int((frame_counter / total_frames) * 45)
+                            progress_callback(progress)
 
         process_out.stdin.close()
         process_out.wait()
@@ -211,7 +336,6 @@ class SoraWM:
             .overwrite_output()
             .run(quiet=True)
         )
-        # Clean up temporary file
         temp_output_path.unlink()
         logger.info(f"Saved no watermark video with audio at: {output_video_path}")
 

@@ -1,5 +1,6 @@
-import torch
 from functools import lru_cache
+
+import torch
 from loguru import logger
 
 

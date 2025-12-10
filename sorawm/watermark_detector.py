@@ -5,8 +5,8 @@ from loguru import logger
 from ultralytics import YOLO
 
 from sorawm.configs import WATER_MARK_DETECT_YOLO_WEIGHTS
-from sorawm.utils.download_utils import download_detector_weights
 from sorawm.utils.devices_utils import get_device
+from sorawm.utils.download_utils import download_detector_weights
 from sorawm.utils.video_utils import VideoLoader
 
 # based on the sora tempalte to detect the whole, and then got the icon part area.
@@ -204,6 +204,6 @@ if __name__ == "__main__":
     print(f"\n=== 检测统计 ===")
     print(f"总帧数: {total_frames}")
     print(f"检测到水印: {detected_frames} 帧")
-    print(f"检测率: {detected_frames/total_frames*100:.2f}%")
+    print(f"检测率: {detected_frames / total_frames * 100:.2f}%")
 
     cv2.destroyAllWindows()

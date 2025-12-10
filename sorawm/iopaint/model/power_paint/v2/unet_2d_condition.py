@@ -239,9 +239,9 @@ def UNet2DConditionModel_forward(
             # For t2i-adapter CrossAttnDownBlock2D
             additional_residuals = {}
             if is_adapter and len(down_intrablock_additional_residuals) > 0:
-                additional_residuals[
-                    "additional_residuals"
-                ] = down_intrablock_additional_residuals.pop(0)
+                additional_residuals["additional_residuals"] = (
+                    down_intrablock_additional_residuals.pop(0)
+                )
 
             if is_brushnet and len(down_block_add_samples) > 0:
                 additional_residuals["down_block_add_samples"] = [

@@ -36,8 +36,7 @@ class InpaintModel:
         self.init_model(device, **kwargs)
 
     @abc.abstractmethod
-    def init_model(self, device, **kwargs):
-        ...
+    def init_model(self, device, **kwargs): ...
 
     @staticmethod
     @abc.abstractmethod
@@ -54,8 +53,7 @@ class InpaintModel:
         ...
 
     @staticmethod
-    def download():
-        ...
+    def download(): ...
 
     def _pad_forward(self, image, mask, config: InpaintRequest):
         origin_height, origin_width = image.shape[:2]
@@ -318,9 +316,9 @@ class DiffusionInpaintModel(InpaintModel):
         r = min(cropper_r, image_r)
         b = min(cropper_b, image_b)
 
-        assert (
-            0 <= l < r and 0 <= t < b
-        ), f"cropper and image not overlap, {l},{t},{r},{b}"
+        assert 0 <= l < r and 0 <= t < b, (
+            f"cropper and image not overlap, {l},{t},{r},{b}"
+        )
 
         cropped_image = image[t:b, l:r, :]
         padding_l = max(0, image_l - cropper_l)

@@ -214,9 +214,9 @@ class DDPM(torch.nn.Module):
         self.num_timesteps = int(timesteps)
         self.linear_start = linear_start
         self.linear_end = linear_end
-        assert (
-            alphas_cumprod.shape[0] == self.num_timesteps
-        ), "alphas have to be defined for each timestep"
+        assert alphas_cumprod.shape[0] == self.num_timesteps, (
+            "alphas have to be defined for each timestep"
+        )
 
         to_torch = partial(torch.tensor, dtype=torch.float32)
 
@@ -764,9 +764,9 @@ class LatentDiffusion(DDPM):
             and batch_idx == 0
             and not self.restarted_from_ckpt
         ):
-            assert (
-                self.scale_factor == 1.0
-            ), "rather not use custom rescaling and std-rescaling simultaneously"
+            assert self.scale_factor == 1.0, (
+                "rather not use custom rescaling and std-rescaling simultaneously"
+            )
             # set rescale weight to 1./std of encodings
             print("### USING STD-RESCALING ###")
             x = super().get_input(batch, self.first_stage_key)
@@ -1636,9 +1636,9 @@ class LatentDiffusion(DDPM):
                     unconditional_conditioning=uc,
                 )
                 x_samples_cfg = self.decode_first_stage(samples_cfg)
-                log[
-                    f"samples_cfg_scale_{unconditional_guidance_scale:.2f}"
-                ] = x_samples_cfg
+                log[f"samples_cfg_scale_{unconditional_guidance_scale:.2f}"] = (
+                    x_samples_cfg
+                )
 
         if inpaint:
             # make a simple center square
@@ -1957,9 +1957,9 @@ class LatentUpscaleDiffusion(LatentDiffusion):
                     unconditional_conditioning=uc,
                 )
                 x_samples_cfg = self.decode_first_stage(samples_cfg)
-                log[
-                    f"samples_cfg_scale_{unconditional_guidance_scale:.2f}"
-                ] = x_samples_cfg
+                log[f"samples_cfg_scale_{unconditional_guidance_scale:.2f}"] = (
+                    x_samples_cfg
+                )
 
         if plot_progressive_rows:
             with ema_scope("Plotting Progressives"):
@@ -2158,9 +2158,9 @@ class LatentFinetuneDiffusion(LatentDiffusion):
                     unconditional_conditioning=uc_full,
                 )
                 x_samples_cfg = self.decode_first_stage(samples_cfg)
-                log[
-                    f"samples_cfg_scale_{unconditional_guidance_scale:.2f}"
-                ] = x_samples_cfg
+                log[f"samples_cfg_scale_{unconditional_guidance_scale:.2f}"] = (
+                    x_samples_cfg
+                )
 
         return log
 
@@ -2188,9 +2188,9 @@ class LatentInpaintDiffusion(LatentFinetuneDiffusion):
         self, batch, k, cond_key=None, bs=None, return_first_stage_outputs=False
     ):
         # note: restricted to non-trainable encoders currently
-        assert (
-            not self.cond_stage_trainable
-        ), "trainable cond stages not yet supported for inpainting"
+        assert not self.cond_stage_trainable, (
+            "trainable cond stages not yet supported for inpainting"
+        )
         z, c, x, xrec, xc = super().get_input(
             batch,
             self.first_stage_key,
@@ -2249,9 +2249,9 @@ class LatentDepth2ImageDiffusion(LatentFinetuneDiffusion):
         self, batch, k, cond_key=None, bs=None, return_first_stage_outputs=False
     ):
         # note: restricted to non-trainable encoders currently
-        assert (
-            not self.cond_stage_trainable
-        ), "trainable cond stages not yet supported for depth2img"
+        assert not self.cond_stage_trainable, (
+            "trainable cond stages not yet supported for depth2img"
+        )
         z, c, x, xrec, xc = super().get_input(
             batch,
             self.first_stage_key,
@@ -2336,9 +2336,9 @@ class LatentUpscaleFinetuneDiffusion(LatentFinetuneDiffusion):
         self, batch, k, cond_key=None, bs=None, return_first_stage_outputs=False
     ):
         # note: restricted to non-trainable encoders currently
-        assert (
-            not self.cond_stage_trainable
-        ), "trainable cond stages not yet supported for upscaling-ft"
+        assert not self.cond_stage_trainable, (
+            "trainable cond stages not yet supported for upscaling-ft"
+        )
         z, c, x, xrec, xc = super().get_input(
             batch,
             self.first_stage_key,

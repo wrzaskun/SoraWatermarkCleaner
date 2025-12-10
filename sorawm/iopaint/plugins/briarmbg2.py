@@ -83,9 +83,7 @@ class Config:
                 "DIS5K+HRSOD+HRS10K": -20,
                 "P3M-10k": -20,
             }[self.task],
-        ][
-            1
-        ]  # choose 0 to skip
+        ][1]  # choose 0 to skip
         self.lr = (1e-4 if "DIS5K" in self.task else 1e-5) * math.sqrt(
             self.batch_size / 4
         )  # DIS needs high lr to converge faster. Adapt the lr linearly
@@ -290,9 +288,9 @@ class Attention(nn.Module):
         sr_ratio=1,
     ):
         super().__init__()
-        assert (
-            dim % num_heads == 0
-        ), f"dim {dim} should be divided by num_heads {num_heads}."
+        assert dim % num_heads == 0, (
+            f"dim {dim} should be divided by num_heads {num_heads}."
+        )
 
         self.dim = dim
         self.num_heads = num_heads
@@ -1096,9 +1094,9 @@ class SwinTransformerBlock(nn.Module):
         self.window_size = window_size
         self.shift_size = shift_size
         self.mlp_ratio = mlp_ratio
-        assert (
-            0 <= self.shift_size < self.window_size
-        ), "shift_size must in 0-window_size"
+        assert 0 <= self.shift_size < self.window_size, (
+            "shift_size must in 0-window_size"
+        )
 
         self.norm1 = norm_layer(dim)
         self.attn = WindowAttention(

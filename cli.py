@@ -1,7 +1,7 @@
 import argparse
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List
 
 
@@ -20,36 +20,38 @@ Examples:
     python batch_process.py -i /path/to/input -o /path/to/output --pattern "*.{mp4,mov,avi}"
     # Without displaying the Tqdm bar inside sorawm procrssing.
     python batch_process.py -i /path/to/input -o /path/to/output --quiet
-        """
+        """,
     )
 
     parser.add_argument(
-        "-i", "--input",
+        "-i",
+        "--input",
         type=str,
         required=True,
-        help="📁 Input folder containing video files"
+        help="📁 Input folder containing video files",
     )
 
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         type=str,
         required=True,
-        help="📁 Output folder for cleaned videos"
+        help="📁 Output folder for cleaned videos",
     )
 
     parser.add_argument(
-        "-p", "--pattern",
+        "-p",
+        "--pattern",
         type=str,
         default="*.mp4",
-        help="🔍 File pattern to match (default: *.mp4)"
+        help="🔍 File pattern to match (default: *.mp4)",
     )
     parser.add_argument(
         "--quiet",
         action="store_true",
         default=False,
-        help="Run in quiet mode (suppress tqdm and most logs)."
+        help="Run in quiet mode (suppress tqdm and most logs).",
     )
-
 
     args = parser.parse_args()
 
@@ -63,7 +65,9 @@ Examples:
         sys.exit(1)
 
     if not input_folder.is_dir():
-        print(f"❌ Error: Input path is not a directory: {input_folder}", file=sys.stderr)
+        print(
+            f"❌ Error: Input path is not a directory: {input_folder}", file=sys.stderr
+        )
         sys.exit(1)
 
     return input_folder, output_folder, args
@@ -79,23 +83,24 @@ def main():
     pattern = args.pattern
 
     # Only NOW import heavy dependencies after validation passed
+    from rich import box
     from rich.console import Console
-    from rich.progress import (
-        Progress,
-        SpinnerColumn,
-        BarColumn,
-        TextColumn,
-        TimeRemainingColumn,
-        TimeElapsedColumn,
-        TaskProgressColumn,
-        MofNCompleteColumn,
-        ProgressColumn,
-    )
     from rich.panel import Panel
+    from rich.progress import (
+        BarColumn,
+        MofNCompleteColumn,
+        Progress,
+        ProgressColumn,
+        SpinnerColumn,
+        TaskProgressColumn,
+        TextColumn,
+        TimeElapsedColumn,
+        TimeRemainingColumn,
+    )
     from rich.table import Table
     from rich.text import Text
-    from rich import box
     from rich.text import Text as RichText
+
     from sorawm.core import SoraWM
 
     # Initialize console after importing rich
@@ -124,7 +129,9 @@ def main():
     class BatchProcessorImpl:
         """Batch video processor with progress tracking"""
 
-        def __init__(self, input_folder: Path, output_folder: Path, pattern: str = "*.mp4"):
+        def __init__(
+            self, input_folder: Path, output_folder: Path, pattern: str = "*.mp4"
+        ):
             self.input_folder = input_folder
             self.output_folder = output_folder
             self.pattern = pattern
@@ -172,10 +179,16 @@ def main():
 
             # Display configuration
             config_table = Table(show_header=False, box=box.SIMPLE, padding=(0, 1))
-            config_table.add_row("📁 Input folder:", f"[cyan]{self.input_folder}[/cyan]")
-            config_table.add_row("📁 Output folder:", f"[green]{self.output_folder}[/green]")
+            config_table.add_row(
+                "📁 Input folder:", f"[cyan]{self.input_folder}[/cyan]"
+            )
+            config_table.add_row(
+                "📁 Output folder:", f"[green]{self.output_folder}[/green]"
+            )
             config_table.add_row("🔍 Pattern:", f"[yellow]{self.pattern}[/yellow]")
-            config_table.add_row("🎬 Videos found:", f"[bold magenta]{len(video_files)}[/bold magenta]")
+            config_table.add_row(
+                "🎬 Videos found:", f"[bold magenta]{len(video_files)}[/bold magenta]"
+            )
             console.print(config_table)
             console.print()
 
@@ -197,7 +210,6 @@ def main():
                 TimeRemainingColumn(),
                 console=console,
             ) as progress:
-
                 # Batch progress task
                 batch_task = progress.add_task(
                     "[cyan]Overall Progress", total=len(video_files)
@@ -209,7 +221,7 @@ def main():
                     # Update batch task description
                     progress.update(
                         batch_task,
-                        description=f"[cyan]Overall Progress ({idx}/{len(video_files)})"
+                        description=f"[cyan]Overall Progress ({idx}/{len(video_files)})",
                     )
 
                     # Show current file being processed
@@ -229,11 +241,15 @@ def main():
                         def progress_callback(prog: int):
                             """Update the video progress bar"""
                             if prog > last_progress[0]:
-                                progress.update(video_task, advance=prog - last_progress[0])
+                                progress.update(
+                                    video_task, advance=prog - last_progress[0]
+                                )
                                 last_progress[0] = prog
 
                         # Process the video (quiet=True suppresses internal tqdm bars if enabled)
-                        self.sora_wm.run(input_path, output_path, progress_callback, quiet=args.quiet)
+                        self.sora_wm.run(
+                            input_path, output_path, progress_callback, quiet=args.quiet
+                        )
 
                         # Ensure video progress reaches 100%
                         if last_progress[0] < 100:
@@ -242,7 +258,9 @@ def main():
                         progress.remove_task(video_task)
 
                         self.successful.append(input_path.name)
-                        console.print(f"  [bold green]✅ Completed:[/bold green] {output_path.name}")
+                        console.print(
+                            f"  [bold green]✅ Completed:[/bold green] {output_path.name}"
+                        )
 
                     except Exception as e:
                         progress.remove_task(video_task)
@@ -263,30 +281,29 @@ def main():
             console.print()
 
             # Create summary statistics table
-            summary_table = Table(show_header=False, box=box.ROUNDED, border_style="cyan")
+            summary_table = Table(
+                show_header=False, box=box.ROUNDED, border_style="cyan"
+            )
             summary_table.add_column("Metric", style="bold")
             summary_table.add_column("Value")
 
             summary_table.add_row("⏱️  Total Time", f"[yellow]{duration}[/yellow]")
             summary_table.add_row(
-                "✅ Successful",
-                f"[bold green]{len(self.successful)}[/bold green]"
+                "✅ Successful", f"[bold green]{len(self.successful)}[/bold green]"
             )
             summary_table.add_row(
-                "❌ Failed",
-                f"[bold red]{len(self.failed)}[/bold red]"
+                "❌ Failed", f"[bold red]{len(self.failed)}[/bold red]"
             )
             summary_table.add_row(
                 "📊 Total",
-                f"[bold magenta]{len(self.successful) + len(self.failed)}[/bold magenta]"
+                f"[bold magenta]{len(self.successful) + len(self.failed)}[/bold magenta]",
             )
 
             # Success rate
             total = len(self.successful) + len(self.failed)
             success_rate = (len(self.successful) / total * 100) if total > 0 else 0
             summary_table.add_row(
-                "📈 Success Rate",
-                f"[bold cyan]{success_rate:.1f}%[/bold cyan]"
+                "📈 Success Rate", f"[bold cyan]{success_rate:.1f}%[/bold cyan]"
             )
 
             # Wrap in a panel
@@ -305,7 +322,7 @@ def main():
                     title="[bold green]✅ Successfully Processed[/bold green]",
                     box=box.SIMPLE,
                     show_header=True,
-                    header_style="bold green"
+                    header_style="bold green",
                 )
                 success_table.add_column("#", style="dim", width=4)
                 success_table.add_column("Filename", style="green")
@@ -322,7 +339,7 @@ def main():
                     title="[bold red]❌ Failed to Process[/bold red]",
                     box=box.SIMPLE,
                     show_header=True,
-                    header_style="bold red"
+                    header_style="bold red",
                 )
                 failed_table.add_column("#", style="dim", width=4)
                 failed_table.add_column("Filename", style="red")
@@ -340,12 +357,12 @@ def main():
             if len(self.failed) == 0:
                 console.print(
                     "[bold green]🎉 All videos processed successfully![/bold green]",
-                    justify="center"
+                    justify="center",
                 )
             else:
                 console.print(
                     "[bold yellow]⚠️  Some videos failed to process. Check errors above.[/bold yellow]",
-                    justify="center"
+                    justify="center",
                 )
             console.print()
 
@@ -357,7 +374,7 @@ def main():
         console.print()
         console.print(
             "[bold yellow]⚠️  Processing interrupted by user[/bold yellow]",
-            justify="center"
+            justify="center",
         )
         sys.exit(130)
     except Exception as e:
