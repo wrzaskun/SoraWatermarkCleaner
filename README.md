@@ -247,5 +247,14 @@ If you use this project, please cite:
 - **`example.py`** works for **`E2FGVI-HQ`** when **`CHUNK_SIZE_PER_GB_VRAM = 1`** is set in **`constants.py`** for an **RTX 4090**.
 - **`start_server.py`** works for **`E2FGVI-HQ`** when **`CHUNK_SIZE_PER_GB_VRAM = 1`** is set in **`constants.py`** for an **RTX 4090**.
 - **`streamlit run app.py`** fails for **`E2FGVI-HQ`** when **`CHUNK_SIZE_PER_GB_VRAM = 1`** is set in **`constants.py`** for an **RTX 4090**—it results in an **Out of Memory (OOM) error**. This might be a bug, as the chunk counter looks to function correctly.
+Here’s a polished and clear version of your note in Markdown:
+
+---
+
+### ✅ **Working Configurations**
+- **`E2FGVI`** works on:
+  - **WSL** (Windows Subsystem for Linux)
+  - **Native Linux**
+- **Windows (native)** only supports **`LAMA`** due to missing packages and version conflicts or **`E2FGVI`**, the `one-click-portable` has only LAMA installed.
 
 ---
