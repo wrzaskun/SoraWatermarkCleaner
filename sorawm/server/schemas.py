@@ -1,8 +1,17 @@
-from enum import StrEnum
+# from enum import StrEnum
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+
+from enum import Enum
+
+try:
+    from enum import StrEnum
+except ImportError:
+    # Fallback dla Pythona < 3.11
+    class StrEnum(str, Enum):
+        pass
 
 class Status(StrEnum):
     UPLOADING = "UPLOADING"
