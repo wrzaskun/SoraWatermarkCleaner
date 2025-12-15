@@ -240,3 +240,12 @@ If you use this project, please cite:
 
 - [IOPaint](https://github.com/Sanster/IOPaint) for the LAMA implementation
 - [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) for object detection
+
+
+## 11. What Works and Known Issues
+
+- **`example.py`** works for **`E2FGVI-HQ`** when **`CHUNK_SIZE_PER_GB_VRAM = 1`** is set in **`constants.py`** for an **RTX 4090**.
+- **`start_server.py`** works for **`E2FGVI-HQ`** when **`CHUNK_SIZE_PER_GB_VRAM = 1`** is set in **`constants.py`** for an **RTX 4090**.
+- **`streamlit run app.py`** fails for **`E2FGVI-HQ`** when **`CHUNK_SIZE_PER_GB_VRAM = 1`** is set in **`constants.py`** for an **RTX 4090**—it results in an **Out of Memory (OOM) error**. This might be a bug, as the chunk counter looks to function correctly.
+
+---
